@@ -1,0 +1,201 @@
+//criação banco de dados
+use rede_games
+ 
+ 
+//criação da coleção clientes
+db.createCollection("clientes")
+ 
+ 
+//inserção de documentos na coleção clientes
+db.clientes.insertMany([
+  {_id:1, nome: "Marcos", idade:25, cidade:"Fortaleza"},
+  {_id:2, nome: "Julia", idade:30, cidade:"São Paulo"},
+  {_id:3, nome: "Lucas", idade:19, cidade:"Recife"},
+  {_id:4, nome:"Ana", idade:27, cidade:"Fortaleza"}
+])
+ 
+ 
+//criação da coleção produtos
+db.createCollection("produtos")
+ 
+ 
+//inserção de documentos na coleção produtos
+db.produtos.insertMany([
+  {_id:101, nome:"Mouse Gamer", categoria:"Periféricos", preco:250},
+  {_id:102, nome:"Teclado Mecânico", categoria:"Periféricos", preco:400},
+  {_id:103, nome:"CS:GO Deluxe", categoria:"Jogos", preco:120},
+  {_id:104, nome:"Headset Pro", categoria: "Periféricos", preco:350},
+  {_id:105, nome:"FIFA 25", categoria: "Jogos", preco:300}
+])
+ 
+ 
+//criação da coleção vendas
+db.createCollection("vendas");
+ 
+ 
+//inserção de documentos na coleção vendas
+db.vendas.insertMany([
+  {clienteid:1, produtoid:101, quantidade:1, data:"2024-05-01"},
+  {clienteid:1, produtoid:103, quantidade:2, data:"2024-05-03"},
+  {clienteid:2, produtoid:102, quantidade:1, data:"2024-05-02"},
+  {clienteid:3, produtoid:105, quantidade:1, data:"2024-05-04"},
+  {clienteid:4, produtoid:104, quantidade:2, data:"2024-05-05"}
+])
+ 
+ 
+//Consulta clientes que moram em Fortaleza
+db.clientes.find({cidade:"Fortaleza"})
+ 
+ 
+//Consulta com $and, todos que clientes com 25 anos e que moram em Fortaleza.
+db.clientes.find(
+  {
+    $and: [
+      { idade: { $gt: 25 } },
+      { cidade: "Fortaleza" }
+    ]
+  }
+)
+ 
+ 
+//Consulta dos valores dos produtos da categoria Periféricos, apenas o preco.
+db.produtos.find(
+{
+    categoria:"Periféricos"
+},
+{
+preco:true,
+_id:false
+}
+)
+ 
+ 
+// Consulta os produtos cujo preço está entre 200 e 400
+db.produtos.find(
+  {
+    preco: { $gte: 200, $lte: 400 }
+  }
+)
+
+
+//Consulta com $nor e $not
+db.produtos.find(
+  {
+    preco: { $gte: 200, $lte: 400 }
+  }
+)
+
+
+//Consulta com $exists e $type
+//$exists 
+db.clientes.find({
+  clienteVip: { $exists: true }
+})
+
+//$type
+db.clientes.find({
+  idade: {$type : "number"}
+}
+)
+
+
+// Inserção de Novo Cliente
+db.clientes.insertOne({ nome: "Jorge", idade: 22, cidade: "Salvador" })
+
+
+//Atualização
+db.clientes.updateOne(
+  { nome: "Marcos" },
+  { $set: { cidade: "Natal" } }
+)
+
+
+//Atualização com $set e $inc
+db.clientes.updateOne(
+  { nome: "Lucas" },
+  { $set: { status: "ativo" }, $inc: { idade: 1 } }
+)
+
+
+
+//Atualização com replaceOne
+db.clientes.replaceOne(
+  { nome: "Julia" },
+  { nome: "Julia", idade: 31, cidade: "Rio de Janeiro", clienteVip: true }
+)
+
+
+//Atualização com $rename e $unset
+db.produtos.updateMany({}, { $rename: { "preco": "valor" } })
+db.produtos.updateMany({}, { $unset: { categoria: "" } })
+
+
+//Exclusão
+db.produtos.deleteOne({ nome: "FIFA 25" })
+
+
+//Operadores Lógicos
+db.clientes.find({ $or: [ { cidade: "São Paulo" }, { cidade: "Recife" } ] })
+
+
+
+//Agregação com $lookup
+db.vendas.aggregate([
+  {
+    $lookup: {
+      from: "produtos",
+      localField: "produtoId",
+      foreignField: "_id",
+      as: "produto"
+    }
+  }
+])
+
+
+//Agrupamento
+db.vendas.aggregate([
+  {
+    $lookup: {
+      from: "produtos",
+      localField: "produtoId",
+      foreignField: "_id",
+      as: "produto"
+    }
+  },
+  { $unwind: "$produto" },
+  {
+    $group: {
+      _id: "$produto.categoria",
+      totalVendidos: { $sum: "$quantidade" }
+    }
+  }
+])
+
+
+//Agregação com $lookup e $group
+db.vendas.aggregate([
+  {
+    $lookup: {
+      from: "produtos",
+      localField: "produtoId",
+      foreignField: "_id",
+      as: "produto"
+    }
+  },
+  { $unwind: "$produto" },
+  {
+    $group: {
+      _id: "$produto.categoria",
+      totalVendidos: { $sum: "$quantidade" }
+    }
+  }
+])
+
+
+//Paginação
+db.produtos.find().sort({ valor: -1 }).limit(2)
+
+
+
+//Paginação com skip
+db.produtos.find().sort({ valor: -1 }).skip(2).limit(3)
